@@ -105,7 +105,7 @@ export function sampleProject(): Project {
         minutes: 20,
         requires: [{ kind: 'item', itemId: 'map', count: 1 }],
         objectives: [{ kind: 'reach', location: 'Hermit’s hut' }, talk('Hermit', 'hermit_riddle')],
-        rewards: [xp(40), flag('met_hermit')],
+        rewards: [xp(40), gold(30)],
       }),
       quest('guild', 'Side with the Guild', 'side', [900, -80], {
         giver: 'Guildmaster Iris',
