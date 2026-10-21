@@ -14,7 +14,7 @@ Work I plan to do, roughly in order. Effort estimates are rough.
 
 - [ ] Search every combination of choices, not one choice at a time, to catch soft-locks that need two decisions
 - [ ] Missable content report: side quests that a choice makes impossible
-- [ ] Pacing charts: minutes, XP and gold per tier, to spot dry stretches and spikes
+- [x] Pacing charts: minutes, XP and gold per tier, to spot dry stretches and spikes
 - [ ] Item counts on the main path (does the player get enough ore by the time it's needed?)
 
 ## Editor (≈6 h)

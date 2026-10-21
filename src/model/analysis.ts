@@ -229,6 +229,13 @@ export interface Totals {
   gold: number;
 }
 
+/** Minutes, XP and gold per tier (index = tier), to spot dry stretches and spikes in the pacing. */
+export function tierPacing(p: Project, play: Playthrough = playthrough(p)): Totals[] {
+  const byTier: string[][] = [];
+  for (const [id, t] of play.tier) (byTier[t] ??= []).push(id);
+  return byTier.map((ids) => totals(p, ids));
+}
+
 /** Adds up the given quests: how much content there is and how much XP and gold it pays out. */
 export function totals(p: Project, ids: Iterable<string>): Totals {
   const set = new Set(ids);

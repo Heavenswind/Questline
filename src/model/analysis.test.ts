@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blockers, mainPath, playthrough, prerequisiteLoops, softLocks, totals } from './analysis';
+import { blockers, mainPath, playthrough, prerequisiteLoops, softLocks, tierPacing, totals } from './analysis';
 import { autoLayout, links } from './graph';
 import { newQuest, sampleProject } from './project';
 import type { Project, Quest } from './types';
@@ -119,6 +119,15 @@ describe('main path and totals', () => {
     const p = sampleProject();
     expect(totals(p, p.quests.map((q) => q.id))).toEqual({ quests: 8, minutes: 185, xp: 790, gold: 430 });
     expect(totals(p, ['ring', 'pass'])).toEqual({ quests: 2, minutes: 45, xp: 250, gold: 20 });
+  });
+
+  it('breaks the pacing down by tier', () => {
+    const p = sampleProject();
+    const pacing = tierPacing(p);
+    expect(pacing.length).toBe(5);
+    expect(pacing[0]).toEqual(totals(p, ['ring']));
+    expect(pacing[3]).toEqual(totals(p, ['guild', 'smugglers']));
+    expect(pacing.reduce((sum, t) => sum + t.minutes, 0)).toBe(185);
   });
 });
 

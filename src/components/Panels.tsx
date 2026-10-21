@@ -4,9 +4,10 @@ import { useEditor, useProject } from '../store';
 export function SummaryPanel() {
   const project = useProject();
   const select = useEditor((s) => s.select);
-  const { main, all, path, tier } = useAnalysis();
+  const { main, all, path, tier, pacing } = useAnalysis();
   const stuck = project.quests.length - tier.size;
   const title = (id: string) => project.quests.find((q) => q.id === id)?.title ?? '?';
+  const busiest = Math.max(1, ...pacing.map((t) => t.minutes));
 
   return (
     <section className="panel">
@@ -31,6 +32,26 @@ export function SummaryPanel() {
         <p className="note">
           {stuck} {stuck === 1 ? 'quest' : 'quests'} can never be started; see Problems.
         </p>
+      )}
+      {pacing.length > 1 && (
+        <>
+          <h3>Pacing by tier</h3>
+          <div className="pacing">
+            {pacing.map((t, n) => (
+              <div className="pacing-row" key={n}>
+                <span className="muted">{n}</span>
+                <div className="pacing-bar">
+                  <div style={{ width: `${(Math.max(0, t.minutes) / busiest) * 100}%` }} />
+                </div>
+                <span>{duration(t.minutes)}</span>
+                <span className="muted">
+                  {t.xp.toLocaleString('en')} XP · {t.gold.toLocaleString('en')} gold
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="muted note">Each tier is a wave of quests that open together; a quiet tier is a dry stretch.</p>
+        </>
       )}
       {path.quests.length > 0 && (
         <>

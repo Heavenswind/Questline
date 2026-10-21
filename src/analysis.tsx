@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { blockers, mainPath, playthrough, totals, type MainPath, type Totals } from './model/analysis';
+import { blockers, mainPath, playthrough, tierPacing, totals, type MainPath, type Totals } from './model/analysis';
 import { problems, type Problem } from './model/validate';
 import { useProject } from './store';
 
@@ -11,6 +11,8 @@ export interface Analysis {
   onPath: Set<string>;
   main: Totals;
   all: Totals;
+  /** Minutes, XP and gold per tier; index = tier. */
+  pacing: Totals[];
 }
 
 const AnalysisContext = createContext<Analysis | null>(null);
@@ -29,6 +31,7 @@ export function AnalysisProvider({ children }: { children: ReactNode }) {
       onPath: new Set(path.quests),
       main: totals(project, path.quests),
       all: totals(project, play.tier.keys()),
+      pacing: tierPacing(project, play),
     };
   }, [project]);
   return <AnalysisContext.Provider value={analysis}>{children}</AnalysisContext.Provider>;
