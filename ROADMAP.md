@@ -23,7 +23,7 @@ Work I plan to do, roughly in order. Effort estimates are rough.
 - [ ] Search and filter by NPC, location, item or flag
 - [ ] Journal preview: the quest log as the player would read it, in tier order
 - [ ] Keyboard shortcuts for adding quests and requirements
-- [ ] Rename a flag everywhere it's used
+- [x] Rename a flag everywhere it's used
 
 ## Integration (≈8 h)
 

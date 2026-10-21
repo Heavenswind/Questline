@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useAnalysis } from '../analysis';
 import { readJson } from '../files';
-import { addItem, addQuest, flagUsage, importItems, itemUsages, removeItem, updateItem } from '../model/edits';
+import { addItem, addQuest, flagUsage, importItems, itemUsages, removeItem, renameFlag, updateItem } from '../model/edits';
 import { itemsFromHoard } from '../model/hoard';
 import { useEditor, useProject } from '../store';
 import { TextInput } from './fields';
@@ -127,9 +127,17 @@ export function ItemsPanel() {
 
 export function FlagsPanel() {
   const project = useProject();
+  const edit = useEditor((s) => s.edit);
   const select = useEditor((s) => s.select);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
   const title = (id: string) => project.quests.find((q) => q.id === id)?.title ?? '?';
   const flags = flagUsage(project);
+
+  const applyRename = () => {
+    if (renaming) edit((p) => renameFlag(p, renaming, draft));
+    setRenaming(null);
+  };
 
   return (
     <section className="panel">
@@ -137,7 +145,34 @@ export function FlagsPanel() {
       {flags.length === 0 && <p className="muted note">Flags appear here when a quest sets or needs one.</p>}
       {flags.map((f) => (
         <div className="flag" key={f.flag}>
-          <code>{f.flag}</code>
+          {renaming === f.flag ? (
+            <input
+              autoFocus
+              aria-label={`New name for flag ${f.flag}`}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={applyRename}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applyRename();
+                else if (e.key === 'Escape') setRenaming(null);
+              }}
+            />
+          ) : (
+            <div className="row">
+              <code>{f.flag}</code>
+              <button
+                className="icon"
+                aria-label={`Rename flag ${f.flag}`}
+                title="Rename this flag everywhere it's set or needed"
+                onClick={() => {
+                  setRenaming(f.flag);
+                  setDraft(f.flag);
+                }}
+              >
+                ✎
+              </button>
+            </div>
+          )}
           <div className="flag-uses">
             <span className="muted">set by </span>
             {f.setBy.length ? (

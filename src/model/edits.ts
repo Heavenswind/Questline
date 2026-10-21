@@ -144,6 +144,20 @@ export function flagUsage(p: Project): FlagUse[] {
   return [...flags.values()].sort((a, b) => a.flag.localeCompare(b.flag));
 }
 
+/** Renames a flag in every reward that sets it and every requirement that needs it. */
+export function renameFlag(p: Project, from: string, to: string): Project {
+  const next = to.trim();
+  if (!next || next === from) return p;
+  return {
+    ...p,
+    quests: p.quests.map((q) => ({
+      ...q,
+      requires: q.requires.map((r) => (r.kind === 'flag' && r.flag === from ? { ...r, flag: next } : r)),
+      rewards: q.rewards.map((r) => (r.kind === 'flag' && r.flag === from ? { ...r, flag: next } : r)),
+    })),
+  };
+}
+
 /**
  * Adds items that aren't in the project yet, matched by id or by name (ignoring case).
  * New items keep their ids, so both tools refer to the same item, and default to "found in the world".

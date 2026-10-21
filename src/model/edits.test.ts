@@ -10,6 +10,7 @@ import {
   itemUsages,
   removeFromList,
   removeQuest,
+  renameFlag,
   setInList,
 } from './edits';
 import { itemsFromHoard } from './hoard';
@@ -77,6 +78,16 @@ describe('items and flags', () => {
       { flag: 'pass_open', setBy: ['guild', 'smugglers'], neededBy: ['pass'] },
       { flag: 'smith_trusts_you', setBy: ['favour'], neededBy: ['blade'] },
     ]);
+  });
+
+  it('renames a flag everywhere, ignoring empty or unchanged names', () => {
+    const p = renameFlag(sampleProject(), 'pass_open', 'gate_open');
+    expect(flagUsage(p).map((f) => f.flag)).toEqual(['gate_open', 'met_mara', 'smith_trusts_you']);
+    expect(quest(p, 'pass').requires).toContainEqual({ kind: 'flag', flag: 'gate_open' });
+    expect(quest(p, 'guild').rewards).toContainEqual({ kind: 'flag', flag: 'gate_open' });
+    expect(problems(p).filter((x) => x.level === 'error')).toEqual([]);
+    expect(renameFlag(p, 'gate_open', '   ')).toBe(p);
+    expect(renameFlag(p, 'gate_open', 'gate_open')).toBe(p);
   });
 
   it('imports Hoard items, skipping gold and anything already there', () => {
