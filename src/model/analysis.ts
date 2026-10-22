@@ -251,3 +251,32 @@ export function totals(p: Project, ids: Iterable<string>): Totals {
   }
   return out;
 }
+
+/** Ids of the quests whose text mentions the query: title, people, places, journal text, flags and item names. */
+export function searchQuests(p: Project, query: string): Set<string> {
+  const needle = query.trim().toLowerCase();
+  const out = new Set<string>();
+  if (!needle) return out;
+  const itemName = new Map(p.items.map((i) => [i.id, i.name.toLowerCase()]));
+  const has = (s: string) => s.toLowerCase().includes(needle);
+  const itemHit = (id: string) => (itemName.get(id) ?? '').includes(needle);
+  for (const q of p.quests) {
+    const hit =
+      has(q.title) ||
+      has(q.giver) ||
+      has(q.location) ||
+      has(q.description) ||
+      q.requires.some((r) => (r.kind === 'flag' && has(r.flag)) || (r.kind === 'item' && itemHit(r.itemId))) ||
+      q.rewards.some((r) => (r.kind === 'flag' && has(r.flag)) || (r.kind === 'item' && itemHit(r.itemId))) ||
+      q.objectives.some(
+        (o) =>
+          (o.kind === 'talk' && has(o.npc)) ||
+          (o.kind === 'kill' && has(o.target)) ||
+          (o.kind === 'reach' && has(o.location)) ||
+          (o.kind === 'collect' && itemHit(o.itemId)) ||
+          (o.kind === 'other' && has(o.text)),
+      );
+    if (hit) out.add(q.id);
+  }
+  return out;
+}

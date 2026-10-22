@@ -20,7 +20,7 @@ Work I plan to do, roughly in order. Effort estimates are rough.
 ## Editor (≈6 h)
 
 - [ ] Multi-select to move, copy and paste groups of quests
-- [ ] Search and filter by NPC, location, item or flag
+- [x] Search and filter by NPC, location, item or flag
 - [ ] Journal preview: the quest log as the player would read it, in tier order
 - [ ] Keyboard shortcuts for adding quests and requirements
 - [x] Rename a flag everywhere it's used

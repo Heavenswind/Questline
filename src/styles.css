@@ -71,6 +71,7 @@ input[type='number'] { font-variant-numeric: tabular-nums; }
 .panel h2 { display: flex; align-items: center; justify-content: space-between; }
 .panel h2 button { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--text); }
 
+.quest-search { width: 100%; margin-bottom: 8px; }
 .quest-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
 .quest-list button { width: 100%; display: flex; align-items: center; gap: 8px; text-align: left; }
 .quest-list .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }

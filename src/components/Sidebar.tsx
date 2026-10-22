@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useAnalysis } from '../analysis';
 import { readJson } from '../files';
+import { searchQuests } from '../model/analysis';
 import { addItem, addQuest, flagUsage, importItems, itemUsages, removeItem, renameFlag, updateItem } from '../model/edits';
 import { itemsFromHoard } from '../model/hoard';
 import { useEditor, useProject } from '../store';
@@ -12,6 +13,8 @@ export function QuestList() {
   const selectedId = useEditor((s) => s.selectedId);
   const select = useEditor((s) => s.select);
   const { tier } = useAnalysis();
+  const [query, setQuery] = useState('');
+  const found = query.trim() ? searchQuests(project, query) : null;
 
   const add = () => {
     const p = useEditor.getState().history.present;
@@ -34,8 +37,16 @@ export function QuestList() {
         Quests
         <button onClick={add}>+ Quest</button>
       </h2>
+      <input
+        type="search"
+        className="quest-search"
+        placeholder="Search titles, places, flags, items…"
+        aria-label="Search quests"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
       <ul className="quest-list">
-        {sorted.map((q) => {
+        {(found ? sorted.filter((q) => found.has(q.id)) : sorted).map((q) => {
           const t = tier.get(q.id);
           return (
             <li key={q.id}>
@@ -48,6 +59,7 @@ export function QuestList() {
           );
         })}
       </ul>
+      {found && found.size === 0 && <p className="muted note">No quest mentions “{query.trim()}”.</p>}
     </section>
   );
 }

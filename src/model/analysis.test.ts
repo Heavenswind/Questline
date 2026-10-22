@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blockers, mainPath, playthrough, prerequisiteLoops, softLocks, tierPacing, totals } from './analysis';
+import { blockers, mainPath, playthrough, prerequisiteLoops, searchQuests, softLocks, tierPacing, totals } from './analysis';
 import { autoLayout, links } from './graph';
 import { newQuest, sampleProject } from './project';
 import type { Project, Quest } from './types';
@@ -159,5 +159,17 @@ describe('graph', () => {
     expect(at.pelts).toEqual([300, 150]);
     expect(at.pass).toEqual([1200, 0]);
     expect(at.stuck).toEqual([1500, 0]);
+  });
+});
+
+describe('searchQuests', () => {
+  it('matches titles, people, places, flags and item names, ignoring case', () => {
+    const p = sampleProject();
+    expect(searchQuests(p, 'BRAM')).toEqual(new Set(['favour', 'blade']));
+    expect(searchQuests(p, 'wolf')).toEqual(new Set(['pelts']));
+    expect(searchQuests(p, 'old map')).toEqual(new Set(['pelts', 'hermit']));
+    expect(searchQuests(p, 'pass_open')).toEqual(new Set(['guild', 'smugglers', 'pass']));
+    expect(searchQuests(p, 'dragon')).toEqual(new Set());
+    expect(searchQuests(p, '   ')).toEqual(new Set());
   });
 });
