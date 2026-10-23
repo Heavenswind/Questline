@@ -192,14 +192,24 @@ export function assertProject(data: unknown): asserts data is Project {
       else check(false, `${where}.kind`, 'is unknown');
     });
 
-    check(Array.isArray(q.rewards), `${at}.rewards`, 'is not a list');
-    q.rewards.forEach((r, k) => {
-      const where = `${at}.rewards[${k}]`;
+    const checkReward = (r: unknown, where: string) => {
       check(isObject(r), where, 'is malformed');
       if (r.kind === 'item') check(isStr(r.itemId) && isNum(r.count), where, 'needs itemId and count');
       else if (r.kind === 'flag') check(isStr(r.flag), where, 'needs flag');
       else if (r.kind === 'xp' || r.kind === 'gold') check(isNum(r.amount), where, 'needs amount');
       else check(false, `${where}.kind`, 'is unknown');
-    });
+    };
+    check(Array.isArray(q.rewards), `${at}.rewards`, 'is not a list');
+    q.rewards.forEach((r, k) => checkReward(r, `${at}.rewards[${k}]`));
+
+    if (q.outcomes !== undefined) {
+      check(Array.isArray(q.outcomes), `${at}.outcomes`, 'is not a list');
+      q.outcomes.forEach((o, k) => {
+        const where = `${at}.outcomes[${k}]`;
+        check(isObject(o) && isStr(o.id) && isStr(o.name), where, 'needs an id and a name');
+        check(Array.isArray(o.rewards), `${where}.rewards`, 'is not a list');
+        o.rewards.forEach((r, j) => checkReward(r, `${where}.rewards[${j}]`));
+      });
+    }
   });
 }

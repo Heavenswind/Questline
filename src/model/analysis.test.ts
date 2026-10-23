@@ -162,6 +162,47 @@ describe('graph', () => {
   });
 });
 
+describe('outcomes', () => {
+  it('counts outcome flags as settable and items at the best single ending', () => {
+    const p = sampleProject();
+    quest(p, 'hermit').outcomes = [
+      { id: 'o1', name: 'Answered the riddle', rewards: [{ kind: 'flag', flag: 'riddle_solved' }, { kind: 'item', itemId: 'map', count: 2 }] },
+      { id: 'o2', name: 'Walked away', rewards: [{ kind: 'item', itemId: 'map', count: 1 }] },
+    ];
+    p.quests.push({ ...newQuest('Riddle Reward'), id: 'reward', requires: [{ kind: 'flag', flag: 'riddle_solved' }] });
+    const { tier, final } = playthrough(p);
+    expect(tier.has('reward')).toBe(true);
+    // 1 map from Wolf Pelts, plus at most 2 from a single hermit ending.
+    expect(final.items.get('map')).toBe(3);
+  });
+
+  it('pays the guaranteed minimum of the endings in the totals', () => {
+    const p = sampleProject();
+    quest(p, 'hermit').outcomes = [
+      { id: 'o1', name: 'Spared', rewards: [{ kind: 'xp', amount: 30 }, { kind: 'gold', amount: 5 }] },
+      { id: 'o2', name: 'Killed', rewards: [{ kind: 'xp', amount: 10 }, { kind: 'gold', amount: 50 }] },
+    ];
+    expect(totals(p, ['hermit'])).toEqual({ quests: 1, minutes: 20, xp: 40 + 10, gold: 30 + 5 });
+  });
+
+  it('matches outcome names and outcome rewards in search', () => {
+    const p = sampleProject();
+    quest(p, 'hermit').outcomes = [{ id: 'o1', name: 'Spared the hermit', rewards: [{ kind: 'flag', flag: 'hermit_friend' }] }];
+    expect(searchQuests(p, 'spared')).toEqual(new Set(['hermit']));
+    expect(searchQuests(p, 'hermit_friend')).toEqual(new Set(['hermit']));
+  });
+
+  it('validates outcome rewards and lone outcomes', () => {
+    const p = sampleProject();
+    quest(p, 'hermit').outcomes = [{ id: 'o1', name: 'Only ending', rewards: [{ kind: 'item', itemId: 'gone', count: 0 }] }];
+    expect(messages(p)).toEqual([
+      'error: “The Hermit’s Riddle” uses an item that no longer exists.',
+      'error: “The Hermit’s Riddle”: counts must be whole numbers of at least 1.',
+      'warning: “The Hermit’s Riddle” has only one outcome; add another or fold its rewards into the quest.',
+    ]);
+  });
+});
+
 describe('searchQuests', () => {
   it('matches titles, people, places, flags and item names, ignoring case', () => {
     const p = sampleProject();

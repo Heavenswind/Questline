@@ -34,4 +34,19 @@ describe('project files', () => {
     (badPos.quests[0] as { position: unknown }).position = 'top left';
     expect(() => assertProject(badPos)).toThrow('quests[0].position');
   });
+
+  it('checks outcomes when a file has them', () => {
+    const p = roundTrip(sampleProject()) as ReturnType<typeof sampleProject>;
+    p.quests[0].outcomes = [
+      { id: 'o1', name: 'Returned it', rewards: [{ kind: 'gold', amount: 10 }] },
+      { id: 'o2', name: 'Kept it', rewards: [] },
+    ];
+    expect(() => assertProject(roundTrip(p))).not.toThrow();
+
+    (p.quests[0].outcomes[1] as { name: unknown }).name = 7;
+    expect(() => assertProject(roundTrip(p))).toThrow('quests[0].outcomes[1] needs an id and a name');
+    p.quests[0].outcomes[1].name = 'Kept it';
+    (p.quests[0].outcomes[0].rewards[0] as { kind: string }).kind = 'karma';
+    expect(() => assertProject(roundTrip(p))).toThrow('quests[0].outcomes[0].rewards[0].kind is unknown');
+  });
 });

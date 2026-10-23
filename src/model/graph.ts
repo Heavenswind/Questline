@@ -1,7 +1,7 @@
 // How quests connect, for drawing: direct prerequisites, flags and items passed from one quest
 // to another, and locks between mutually exclusive choices.
 
-import { playthrough } from './analysis';
+import { allRewards, playthrough } from './analysis';
 import type { Project } from './types';
 
 export type LinkKind = 'quest' | 'flag' | 'item' | 'lock';
@@ -17,8 +17,8 @@ export interface Link {
 export function links(p: Project): Link[] {
   const quests = new Set(p.quests.map((q) => q.id));
   const items = new Map(p.items.map((i) => [i.id, i]));
-  const setters = (flag: string) => p.quests.filter((q) => q.rewards.some((r) => r.kind === 'flag' && r.flag === flag));
-  const givers = (itemId: string) => p.quests.filter((q) => q.rewards.some((r) => r.kind === 'item' && r.itemId === itemId));
+  const setters = (flag: string) => p.quests.filter((q) => allRewards(q).some((r) => r.kind === 'flag' && r.flag === flag));
+  const givers = (itemId: string) => p.quests.filter((q) => allRewards(q).some((r) => r.kind === 'item' && r.itemId === itemId));
   const out: Link[] = [];
 
   for (const q of p.quests) {

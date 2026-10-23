@@ -90,6 +90,14 @@ describe('items and flags', () => {
     expect(renameFlag(p, 'gate_open', 'gate_open')).toBe(p);
   });
 
+  it('renames flags inside outcome rewards and lists them as setters', () => {
+    const p = sampleProject();
+    quest(p, 'hermit').outcomes = [{ id: 'o1', name: 'Spared', rewards: [{ kind: 'flag', flag: 'pass_open' }] }];
+    expect(flagUsage(p).find((f) => f.flag === 'pass_open')!.setBy).toEqual(['hermit', 'guild', 'smugglers']);
+    const renamed = renameFlag(p, 'pass_open', 'gate_open');
+    expect(quest(renamed, 'hermit').outcomes![0].rewards).toEqual([{ kind: 'flag', flag: 'gate_open' }]);
+  });
+
   it('imports Hoard items, skipping gold and anything already there', () => {
     const hoard = {
       format: 'hoard',

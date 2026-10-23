@@ -2,6 +2,7 @@ import { useAnalysis } from '../analysis';
 import {
   addToList,
   blankObjective,
+  blankOutcome,
   blankRequirement,
   blankReward,
   flagUsage,
@@ -139,10 +140,19 @@ function ObjectiveRow({ project, quest, o, n }: { project: Project; quest: Quest
   );
 }
 
-function RewardRow({ project, quest, r, n }: { project: Project; quest: Quest; r: Reward; n: number }) {
-  const edit = useEditor((s) => s.edit);
-  const key = `rew-${quest.id}-${n}`;
-  const set = (value: Reward, merge?: string) => edit((p) => setInList(p, quest.id, 'rewards', n, value), merge);
+function RewardRow({
+  project,
+  r,
+  mergeKey: key,
+  set,
+  remove,
+}: {
+  project: Project;
+  r: Reward;
+  mergeKey: string;
+  set: (value: Reward, merge?: string) => void;
+  remove: () => void;
+}) {
   return (
     <div className="row">
       <span className="row-kind">{REWARD_KINDS[r.kind]}</span>
@@ -158,7 +168,7 @@ function RewardRow({ project, quest, r, n }: { project: Project; quest: Quest; r
       {r.kind === 'flag' && (
         <TextInput aria-label="Flag" list={FLAG_LIST} placeholder="flag_name" value={r.flag} onChange={(flag) => set({ ...r, flag }, key)} />
       )}
-      <Remove label="Remove reward" onClick={() => edit((p) => removeFromList(p, quest.id, 'rewards', n))} />
+      <Remove label="Remove reward" onClick={remove} />
     </div>
   );
 }
@@ -259,9 +269,56 @@ export function Inspector() {
 
       <h3>Rewards</h3>
       {quest.rewards.map((r, n) => (
-        <RewardRow key={n} project={project} quest={quest} r={r} n={n} />
+        <RewardRow
+          key={n}
+          project={project}
+          r={r}
+          mergeKey={`rew-${quest.id}-${n}`}
+          set={(value, merge) => edit((p) => setInList(p, quest.id, 'rewards', n, value), merge)}
+          remove={() => edit((p) => removeFromList(p, quest.id, 'rewards', n))}
+        />
       ))}
       <AddMenu label="+ Add reward" kinds={REWARD_KINDS} onAdd={(kind) => edit((p) => addToList(p, quest.id, 'rewards', blankReward(kind, p)))} />
+
+      <h3>Outcomes</h3>
+      <p className="muted note">Ways the quest can end (spared / killed). The player gets the rewards above plus one outcome's.</p>
+      {(quest.outcomes ?? []).map((o, n) => {
+        const setOutcome = (value: typeof o | null, merge?: string) =>
+          set((q) => ({ ...q, outcomes: value ? q.outcomes?.map((x, i) => (i === n ? value : x)) : q.outcomes?.filter((_, i) => i !== n) }), merge);
+        return (
+          <div className="outcome" key={o.id}>
+            <div className="row">
+              <span className="row-kind">Ends as</span>
+              <TextInput
+                aria-label="Outcome name"
+                placeholder="How it ends"
+                value={o.name}
+                onChange={(name) => setOutcome({ ...o, name }, `out-${quest.id}-${n}`)}
+              />
+              <Remove label="Remove outcome" onClick={() => setOutcome(null)} />
+            </div>
+            {o.rewards.map((r, k) => (
+              <RewardRow
+                key={k}
+                project={project}
+                r={r}
+                mergeKey={`out-rew-${o.id}-${k}`}
+                set={(value, merge) => setOutcome({ ...o, rewards: o.rewards.map((x, i) => (i === k ? value : x)) }, merge)}
+                remove={() => setOutcome({ ...o, rewards: o.rewards.filter((_, i) => i !== k) })}
+              />
+            ))}
+            <AddMenu
+              label="+ Add outcome reward"
+              kinds={REWARD_KINDS}
+              onAdd={(kind) => edit((p) => updateQuest(p, quest.id, (q) => ({
+                ...q,
+                outcomes: q.outcomes?.map((x, i) => (i === n ? { ...x, rewards: [...x.rewards, blankReward(kind, p)] } : x)),
+              })))}
+            />
+          </div>
+        );
+      })}
+      <button onClick={() => set((q) => ({ ...q, outcomes: [...(q.outcomes ?? []), blankOutcome()] }))}>+ Outcome</button>
 
       <h3>Locks</h3>
       <p className="muted note">Quests that can no longer be started once this one is done, for choices like picking a side.</p>

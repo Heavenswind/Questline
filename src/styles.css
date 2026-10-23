@@ -101,6 +101,9 @@ input[type='number'] { font-variant-numeric: tabular-nums; }
 .row .count { width: 58px; flex: none; }
 .add-menu { color: var(--muted); align-self: flex-start; }
 
+.outcome { display: flex; flex-direction: column; gap: 6px; border-left: 2px solid var(--panel-2); padding-left: 8px; }
+.outcome .row ~ .row, .outcome .add-menu { margin-left: 16px; }
+
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .tile { background: var(--panel-2); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
 .tile span { font-size: 12px; }

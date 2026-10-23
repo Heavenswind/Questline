@@ -1,7 +1,7 @@
 // What a player can actually do: which quests become possible and when, why the rest can't,
 // which choices strand the main story, and how long the main story takes.
 
-import type { Item, Project, Quest, Requirement } from './types';
+import type { Item, Project, Quest, Requirement, Reward } from './types';
 
 interface State {
   done: Set<string>;
@@ -11,6 +11,9 @@ interface State {
 }
 
 const emptyState = (): State => ({ done: new Set(), flags: new Set(), items: new Map() });
+
+/** The quest's rewards plus everything any of its outcomes can give. For "who can provide X" questions. */
+export const allRewards = (q: Quest): Reward[] => (q.outcomes?.length ? [...q.rewards, ...q.outcomes.flatMap((o) => o.rewards)] : q.rewards);
 
 /** Item ids the player needs a quest to get, and how many: requirements plus collect objectives. */
 function itemNeeds(q: Quest): { itemId: string; count: number }[] {
@@ -45,6 +48,19 @@ function complete(q: Quest, state: State) {
     if (r.kind === 'flag') state.flags.add(r.flag);
     else if (r.kind === 'item') state.items.set(r.itemId, (state.items.get(r.itemId) ?? 0) + r.count);
   }
+  if (!q.outcomes) return;
+  // Some playthrough can pick any ending, so every outcome flag counts as settable,
+  // while an item counts at the most a single ending can give.
+  const best = new Map<string, number>();
+  for (const o of q.outcomes) {
+    const given = new Map<string, number>();
+    for (const r of o.rewards) {
+      if (r.kind === 'flag') state.flags.add(r.flag);
+      else if (r.kind === 'item') given.set(r.itemId, (given.get(r.itemId) ?? 0) + r.count);
+    }
+    for (const [id, n] of given) best.set(id, Math.max(best.get(id) ?? 0, n));
+  }
+  for (const [id, n] of best) state.items.set(id, (state.items.get(id) ?? 0) + n);
 }
 
 export interface Playthrough {
@@ -79,8 +95,8 @@ export function blockers(p: Project, play: Playthrough = playthrough(p)): Map<st
   const items = new Map(p.items.map((i) => [i.id, i]));
   const quests = new Map(p.quests.map((q) => [q.id, q]));
   const { tier, final } = play;
-  const setters = (flag: string) => p.quests.filter((q) => q.rewards.some((r) => r.kind === 'flag' && r.flag === flag));
-  const givers = (itemId: string) => p.quests.filter((q) => q.rewards.some((r) => r.kind === 'item' && r.itemId === itemId));
+  const setters = (flag: string) => p.quests.filter((q) => allRewards(q).some((r) => r.kind === 'flag' && r.flag === flag));
+  const givers = (itemId: string) => p.quests.filter((q) => allRewards(q).some((r) => r.kind === 'item' && r.itemId === itemId));
 
   const itemReason = (itemId: string, count: number, prefix: string): string | null => {
     const item = items.get(itemId);
@@ -205,11 +221,11 @@ export function mainPath(p: Project, play: Playthrough = playthrough(p)): MainPa
     for (const r of q.requires) {
       if (r.kind === 'quest' && quests.has(r.questId)) add(needed(r.questId));
       else if (r.kind === 'flag')
-        add(quickest(p.quests.filter((x) => x.rewards.some((w) => w.kind === 'flag' && w.flag === r.flag))));
+        add(quickest(p.quests.filter((x) => allRewards(x).some((w) => w.kind === 'flag' && w.flag === r.flag))));
     }
     for (const need of itemNeeds(q)) {
       if (items.get(need.itemId)?.inWorld) continue;
-      add(quickest(p.quests.filter((x) => x.rewards.some((w) => w.kind === 'item' && w.itemId === need.itemId))));
+      add(quickest(p.quests.filter((x) => allRewards(x).some((w) => w.kind === 'item' && w.itemId === need.itemId))));
     }
     visiting.delete(id);
     memo.set(id, set);
@@ -236,18 +252,20 @@ export function tierPacing(p: Project, play: Playthrough = playthrough(p)): Tota
   return byTier.map((ids) => totals(p, ids));
 }
 
-/** Adds up the given quests: how much content there is and how much XP and gold it pays out. */
+/**
+ * Adds up the given quests: how much content there is and how much XP and gold it pays out.
+ * A quest with outcomes counts at the smallest payout an ending can give — the guaranteed minimum.
+ */
 export function totals(p: Project, ids: Iterable<string>): Totals {
   const set = new Set(ids);
   const out: Totals = { quests: 0, minutes: 0, xp: 0, gold: 0 };
+  const sumOf = (rs: Reward[], kind: 'xp' | 'gold') => rs.reduce((n, r) => (r.kind === kind ? n + r.amount : n), 0);
   for (const q of p.quests) {
     if (!set.has(q.id)) continue;
     out.quests++;
     out.minutes += Math.max(0, q.minutes);
-    for (const r of q.rewards) {
-      if (r.kind === 'xp') out.xp += r.amount;
-      else if (r.kind === 'gold') out.gold += r.amount;
-    }
+    out.xp += sumOf(q.rewards, 'xp') + (q.outcomes?.length ? Math.min(...q.outcomes.map((o) => sumOf(o.rewards, 'xp'))) : 0);
+    out.gold += sumOf(q.rewards, 'gold') + (q.outcomes?.length ? Math.min(...q.outcomes.map((o) => sumOf(o.rewards, 'gold'))) : 0);
   }
   return out;
 }
@@ -267,7 +285,8 @@ export function searchQuests(p: Project, query: string): Set<string> {
       has(q.location) ||
       has(q.description) ||
       q.requires.some((r) => (r.kind === 'flag' && has(r.flag)) || (r.kind === 'item' && itemHit(r.itemId))) ||
-      q.rewards.some((r) => (r.kind === 'flag' && has(r.flag)) || (r.kind === 'item' && itemHit(r.itemId))) ||
+      allRewards(q).some((r) => (r.kind === 'flag' && has(r.flag)) || (r.kind === 'item' && itemHit(r.itemId))) ||
+      (q.outcomes ?? []).some((o) => has(o.name)) ||
       q.objectives.some(
         (o) =>
           (o.kind === 'talk' && has(o.npc)) ||

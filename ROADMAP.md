@@ -4,7 +4,7 @@ Work I plan to do, roughly in order. Effort estimates are rough.
 
 ## Quest design (≈8 h)
 
-- [ ] Outcomes: a quest can end in different ways (spared / killed), each with its own rewards and flags
+- [x] Outcomes: a quest can end in different ways (spared / killed), each with its own rewards and flags
 - [ ] "Flag not set" requirements, for branches that close when something happens
 - [ ] Player level requirements, with an XP curve so levels follow from the XP rewards
 - [ ] Repeatable quests and quests that fail after a deadline or event

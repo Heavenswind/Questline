@@ -30,6 +30,14 @@ export type Reward =
   | { kind: 'xp'; amount: number }
   | { kind: 'gold'; amount: number };
 
+/** One way a quest can end (spared / killed). The player picks exactly one; its rewards come on top of the quest's. */
+export interface QuestOutcome {
+  id: string;
+  /** Short label the designer would recognise: "Spared the dragon". */
+  name: string;
+  rewards: Reward[];
+}
+
 export interface Quest {
   id: string;
   title: string;
@@ -44,6 +52,8 @@ export interface Quest {
   requires: Requirement[];
   objectives: Objective[];
   rewards: Reward[];
+  /** Different endings, each with extra rewards and flags. Missing or empty means one fixed ending. */
+  outcomes?: QuestOutcome[];
   /** Quests that can no longer be started once this one is done (mutually exclusive choices). */
   locks: string[];
   /** Where the quest sits in the graph. */

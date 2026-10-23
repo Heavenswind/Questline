@@ -1,4 +1,4 @@
-import { blockers, playthrough, prerequisiteLoops, softLocks, type Playthrough } from './analysis';
+import { allRewards, blockers, playthrough, prerequisiteLoops, softLocks, type Playthrough } from './analysis';
 import type { Project } from './types';
 
 export interface Problem {
@@ -26,7 +26,7 @@ export function problems(p: Project, play: Playthrough = playthrough(p)): Proble
     const itemIds = [
       ...q.requires.flatMap((r) => (r.kind === 'item' ? [r.itemId] : [])),
       ...q.objectives.flatMap((o) => (o.kind === 'collect' ? [o.itemId] : [])),
-      ...q.rewards.flatMap((r) => (r.kind === 'item' ? [r.itemId] : [])),
+      ...allRewards(q).flatMap((r) => (r.kind === 'item' ? [r.itemId] : [])),
     ];
     if (itemIds.some((id) => !items.has(id))) error(`${name} uses an item that no longer exists.`, q.id);
     if (q.locks.some((id) => !quests.has(id))) error(`${name} locks a quest that no longer exists.`, q.id);
@@ -35,12 +35,13 @@ export function problems(p: Project, play: Playthrough = playthrough(p)): Proble
     const counts = [
       ...q.requires.flatMap((r) => (r.kind === 'item' ? [r.count] : [])),
       ...q.objectives.flatMap((o) => (o.kind === 'collect' || o.kind === 'kill' ? [o.count] : [])),
-      ...q.rewards.flatMap((r) => (r.kind === 'item' ? [r.count] : [])),
+      ...allRewards(q).flatMap((r) => (r.kind === 'item' ? [r.count] : [])),
     ];
     if (!counts.every(countOk)) error(`${name}: counts must be whole numbers of at least 1.`, q.id);
     if (!(q.minutes >= 0)) error(`${name}: minutes cannot be negative.`, q.id);
-    if (q.rewards.some((r) => (r.kind === 'xp' || r.kind === 'gold') && !(r.amount >= 0)))
+    if (allRewards(q).some((r) => (r.kind === 'xp' || r.kind === 'gold') && !(r.amount >= 0)))
       error(`${name}: XP and gold rewards cannot be negative.`, q.id);
+    if (q.outcomes?.length === 1) warning(`${name} has only one outcome; add another or fold its rewards into the quest.`, q.id);
   }
 
   for (const loop of prerequisiteLoops(p)) {
@@ -66,7 +67,7 @@ export function problems(p: Project, play: Playthrough = playthrough(p)): Proble
 
   const required = new Set(p.quests.flatMap((q) => q.requires.flatMap((r) => (r.kind === 'flag' ? [r.flag] : []))));
   for (const q of p.quests) {
-    for (const r of q.rewards) {
+    for (const r of allRewards(q)) {
       if (r.kind === 'flag' && !required.has(r.flag))
         warning(`${quote(q.title)} sets flag ${quote(r.flag)}, but no quest needs it. A typo?`, q.id);
     }

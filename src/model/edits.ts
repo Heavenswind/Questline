@@ -1,7 +1,8 @@
 // Immutable edits the UI applies through the store. Each returns a new project.
 
+import { allRewards } from './analysis';
 import { newQuest, uid } from './project';
-import type { Item, Objective, Project, Quest, Requirement, Reward } from './types';
+import type { Item, Objective, Project, Quest, QuestOutcome, Requirement, Reward } from './types';
 
 /** "New quest", then "New quest 2", "New quest 3"… */
 export function uniqueName(base: string, taken: string[]): string {
@@ -78,6 +79,10 @@ export function blankReward(kind: Reward['kind'], p: Project): Reward {
   return { kind, amount: kind === 'xp' ? 50 : 10 };
 }
 
+export function blankOutcome(): QuestOutcome {
+  return { id: uid(), name: '', rewards: [] };
+}
+
 /** Dragging from one quest to another in the graph: `target` now needs `source` to be done. */
 export function connect(p: Project, source: string, target: string): Project {
   if (source === target) return p;
@@ -122,7 +127,7 @@ export function itemUsages(p: Project, itemId: string): string[] {
       (q) =>
         q.requires.some((r) => r.kind === 'item' && r.itemId === itemId) ||
         q.objectives.some((o) => o.kind === 'collect' && o.itemId === itemId) ||
-        q.rewards.some((r) => r.kind === 'item' && r.itemId === itemId),
+        allRewards(q).some((r) => r.kind === 'item' && r.itemId === itemId),
     )
     .map((q) => q.title);
 }
@@ -138,7 +143,7 @@ export function flagUsage(p: Project): FlagUse[] {
   const flags = new Map<string, FlagUse>();
   const entry = (flag: string) => flags.get(flag) ?? flags.set(flag, { flag, setBy: [], neededBy: [] }).get(flag)!;
   for (const q of p.quests) {
-    for (const r of q.rewards) if (r.kind === 'flag' && r.flag) entry(r.flag).setBy.push(q.id);
+    for (const r of allRewards(q)) if (r.kind === 'flag' && r.flag) entry(r.flag).setBy.push(q.id);
     for (const r of q.requires) if (r.kind === 'flag' && r.flag) entry(r.flag).neededBy.push(q.id);
   }
   return [...flags.values()].sort((a, b) => a.flag.localeCompare(b.flag));
@@ -148,12 +153,14 @@ export function flagUsage(p: Project): FlagUse[] {
 export function renameFlag(p: Project, from: string, to: string): Project {
   const next = to.trim();
   if (!next || next === from) return p;
+  const inReward = (r: Reward): Reward => (r.kind === 'flag' && r.flag === from ? { ...r, flag: next } : r);
   return {
     ...p,
     quests: p.quests.map((q) => ({
       ...q,
       requires: q.requires.map((r) => (r.kind === 'flag' && r.flag === from ? { ...r, flag: next } : r)),
-      rewards: q.rewards.map((r) => (r.kind === 'flag' && r.flag === from ? { ...r, flag: next } : r)),
+      rewards: q.rewards.map(inReward),
+      outcomes: q.outcomes?.map((o) => ({ ...o, rewards: o.rewards.map(inReward) })),
     })),
   };
 }
